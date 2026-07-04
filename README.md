@@ -1,0 +1,513 @@
+[monitoramento.html](https://github.com/user-attachments/files/29651505/monitoramento.html)
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard PTT.sp - Monitoramento de Tráfego</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #0f172a; /* Fundo escuro estilo NOC */
+            color: #f8fafc;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #1e293b;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        .header-title-container {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        header h1 {
+            font-size: 1.6rem;
+            color: #38bdf8;
+        }
+
+        .live-datetime {
+            font-size: 0.8rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .header-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            font-size: 0.9rem;
+            background: #1e293b;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .status-badge.active {
+            color: #34d399;
+        }
+
+        .status-badge.paused {
+            color: #f43f5e;
+        }
+
+        /* Botões de Ação */
+        .action-btn {
+            background: #1e293b;
+            color: #38bdf8;
+            border: 1px solid #334155;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .action-btn:hover {
+            background: #334155;
+            color: #f8fafc;
+        }
+
+        #refreshBtn {
+            display: none; 
+            color: #fbbf24;
+            border-color: rgba(251, 191, 36, 0.3);
+        }
+
+        #refreshBtn:hover {
+            background: rgba(251, 191, 36, 0.2);
+        }
+
+        /* Caixa de Informações (Modal) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            width: 332px;
+            height: 383px;
+            background: #1e293b;
+            border: 2px solid #334155;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 10px;
+        }
+
+        .modal-header h2 {
+            font-size: 1.2rem;
+            color: #38bdf8;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 1.3rem;
+            cursor: pointer;
+        }
+
+        .close-btn:hover {
+            color: #ef4444;
+        }
+
+        .modal-body {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .info-group {
+            border-bottom: 1px solid #1e293b;
+            padding-bottom: 8px;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .info-value {
+            font-size: 0.95rem;
+            color: #e2e8f0;
+            font-weight: 500;
+            margin-top: 2px;
+        }
+
+        /* Grid Simétrico */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            flex: 1;
+        }
+
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Cards dos Gráficos */
+        .card {
+            background-color: #1e293b;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 290px;
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: #e2e8f0;
+            align-self: flex-start;
+            border-left: 4px solid #38bdf8;
+            padding-left: 10px;
+        }
+
+        .graphic-container {
+            width: 100%;
+            height: 210px;
+            background-color: #0f172a;
+            border-radius: 6px;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+        }
+
+        .graphic-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* Cards Vazios */
+        .card.placeholder {
+            border: 2px dashed #334155;
+            background-color: rgba(30, 41, 59, 0.3);
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .card.placeholder:hover {
+            border-color: #38bdf8;
+            background-color: rgba(30, 41, 59, 0.6);
+        }
+
+        .placeholder-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: #475569;
+            transition: color 0.2s ease;
+        }
+
+        .card.placeholder:hover .placeholder-content {
+            color: #38bdf8;
+        }
+
+        .plus-icon {
+            font-size: 2.5rem;
+            font-weight: 300;
+        }
+
+        .placeholder-text {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        /* Rodapé de Créditos */
+        footer {
+            display: table;
+            width: 100%;
+            padding: 20px 0 10px 0;
+            font-size: 0.85rem;
+            color: #64748b;
+            border-top: 1px solid #1e293b;
+            margin-top: 30px;
+        }
+
+        .footer-left {
+            display: table-cell;
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .footer-right {
+            display: table-cell;
+            text-align: right;
+            vertical-align: middle;
+        }
+
+        .footer-right span {
+            margin-right: 10px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+
+        .footer-right img {
+            height: 32px;
+            width: auto;
+            display: inline-block;
+            vertical-align: middle;
+            filter: grayscale(30%) brightness(90%);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="header-title-container">
+            <h1>Monitoramento de Rede - Dashboard</h1>
+            <div class="live-datetime" id="liveDateTime">Carregando data e hora...</div>
+        </div>
+        <div class="header-controls">
+            <div class="status-badge active" id="statusBadge">🔄 Atualização Automática: Ativa (5m)</div>
+            <button class="action-btn" id="toggleAutoBtn" title="Pausar/Retomar Atualização Automática">⏸</button>
+            <button class="action-btn" id="refreshBtn" title="Atualizar Dados Manualmente">↻</button>
+            <button class="action-btn" id="openModalBtn" title="Informações">ℹ</button>
+        </div>
+    </header>
+
+    <div class="modal-overlay" id="infoModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sobre o Sistema</h2>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="info-group">
+                    <div class="info-label">Desenvolvedor</div>
+                    <div class="info-value">Vinicius dos Santos Bueno</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Versão do Software</div>
+                    <div class="info-value">v1.0.0</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Tipo de Licença</div>
+                    <div class="info-value">V1-TESTE(03062026)</div>
+                </div>
+                <div class="info-group">
+                    <div class="info-label">Última Atualização</div>
+                    <div class="info-value">03 de Julho de 2026</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+
+        <div class="card">
+            <h3>(PTT.SP)Tráfego Agregado - Diário</h3>
+            <div class="graphic-container">
+                <img class="refresh-img" src="https://old.ix.br/stats/cf8b2c6fec2dfcdcad2c3e92efcf2ef7/sp/images/pix/agregado_bps-daily.png" alt="Gráfico Diário PTT.SP">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>(ELETRONET)Tráfego Agregado - Diário</h3>
+            <div class="graphic-container">
+                <img class="refresh-img" src="https://old.ix.br/stats/c6ea4ac6cbd4fb8fcd24640f142b25be/sp/images/pix/pix_eletronet_bps-daily.png" alt="Gráfico Diário Eletronet">
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>(SP2)Tráfego Agregado - Diário</h3>
+            <div class="graphic-container">
+                <img class="refresh-img" src="https://old.ix.br/stats/a4c35ac9826b2178059d13bc193c0a8a/sp/images/pix/pix_equinix-sp2_bps-daily.png" alt="Gráfico Diário SP2">
+            </div>
+        </div>
+
+        <div class="card placeholder">
+            <div class="placeholder-content">
+                <div class="plus-icon">+</div>
+                <div class="placeholder-text">Adicionar Monitoramento</div>
+            </div>
+        </div>
+
+        <div class="card placeholder">
+            <div class="placeholder-content">
+                <div class="plus-icon">+</div>
+                <div class="placeholder-text">Adicionar Monitoramento</div>
+            </div>
+        </div>
+
+        <div class="card placeholder">
+            <div class="placeholder-content">
+                <div class="plus-icon">+</div>
+                <div class="placeholder-text">Adicionar Monitoramento</div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        <div class="footer-left">
+            &copy; 2026 Vinicius dos Santos Bueno😎 - Todos os direitos reservados.
+        </div>
+        <div class="footer-right">
+            <img src="https://nic.br/docs-assets/images/logos_home/logo-ix.png" alt="Logo IX.br / NIC.br">
+        </div>
+    </footer>
+
+    <script>
+        // Lógica do Modal de Informações
+        const modal = document.getElementById('infoModal');
+        const openBtn = document.getElementById('openModalBtn');
+        const closeBtn = document.getElementById('closeModalBtn');
+
+        openBtn.addEventListener('click', () => modal.style.display = 'flex');
+        closeBtn.addEventListener('click', () => modal.style.display = 'none');
+        window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+        // CONTROLE DE ATUALIZAÇÃO DINÂMICA COM PERSISTÊNCIA
+        const tempoAtualizacao = 5 * 60 * 1000; 
+        let temporizador;
+        
+        // Recupera a preferência salva no navegador. Se não existir, o padrão é true (Ativo)
+        let autoRefreshAtivo = localStorage.getItem('autoRefresh') !== 'false';
+
+        const statusBadge = document.getElementById('statusBadge');
+        const toggleAutoBtn = document.getElementById('toggleAutoBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+
+        function ligarTemporizador() {
+            clearTimeout(temporizador);
+            temporizador = setTimeout(() => {
+                window.location.reload(true);
+            }, tempoAtualizacao);
+        }
+
+        // Função para renderizar os botões e estados baseado na variável de controle
+        function aplicarEstadoAtualizacao() {
+            if (autoRefreshAtivo) {
+                toggleAutoBtn.innerText = '⏸'; 
+                statusBadge.innerText = '🔄 Atualização Automática: Ativa (5m)';
+                statusBadge.className = 'status-badge active';
+                refreshBtn.style.display = 'none'; 
+                ligarTemporizador();
+            } else {
+                clearTimeout(temporizador);
+                toggleAutoBtn.innerText = '▶'; 
+                statusBadge.innerText = '🛑 Atualização Automática: Pausada';
+                statusBadge.className = 'status-badge paused';
+                refreshBtn.style.display = 'flex'; 
+            }
+        }
+
+        // Evento do botão de Alternar (Play/Pause)
+        toggleAutoBtn.addEventListener('click', () => {
+            autoRefreshAtivo = !autoRefreshAtivo;
+            localStorage.setItem('autoRefresh', autoRefreshAtivo); // Salva a escolha do usuário
+            aplicarEstadoAtualizacao();
+        });
+
+        // Evento do botão manual (apenas atualiza mantendo o estado manual salvo)
+        refreshBtn.addEventListener('click', () => {
+            window.location.reload(true);
+        });
+
+        // Aplica o estado correto assim que a página termina de carregar
+        aplicarEstadoAtualizacao();
+
+        // LÓGICA DO RELÓGIO COM DATA E HORA POR EXTENSO
+        function atualizarDataHora() {
+            const agora = new Date();
+            const opcoes = { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            };
+            let dataFormatada = agora.toLocaleDateString('pt-BR', opcoes);
+            dataFormatada = dataFormatada.charAt(0).toUpperCase() + dataFormatada.slice(1);
+            document.getElementById('liveDateTime').innerText = dataFormatada;
+        }
+
+        atualizarDataHora();
+        setInterval(atualizarDataHora, 1000);
+
+        // Registra o Service Worker exigido pelo PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('./sw.js')
+            .then(() => console.log("PWA ativo com sucesso!"))
+            .catch((err) => console.log("Erro ao registrar o PWA:", err));
+        }
+    </script>
+
+</body>
+</html>
