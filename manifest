@@ -1,0 +1,18 @@
+{
+  "name": "Dashboard Monitoramento PTT.sp",
+  "short_name": "PTT Monitor",
+  "description": "Painel de monitoramento do PTT.sp por Vinicius Bueno",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/825/825590.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
